@@ -21,7 +21,7 @@
                           :props {:ssl true
                                   :sslfactory "org.postgresql.ssl.NonValidatingFactory"}})))
 
-(def structure-version 0)
+(def structure-version 1)
 
 (defentity dbkey
   (table "keys")
@@ -91,3 +91,6 @@
 (defn downgrade-structure-to
   [version]
   (perform-structure-steps version structure-downgrade-step))
+
+(defn upgrade-to-latest []
+  (upgrade-structure-to structure-version))
