@@ -23,11 +23,17 @@
 
 (def structure-version 1)
 
+(defmacro with-exception-redirect [& body]
+  `(try
+     ~@body
+     (catch Exception e#
+       )))
+
+;;; Entities
+
 (defentity dbkey
   (table "keys")
   (pk :key))
-
-;;; Entities
 
 (defentity user
   (table "users")
@@ -41,12 +47,6 @@
     (:value (first (select dbkey (where {:key key}))))))
 
 ;;;DB upgrade/downgrade
-
-(defmacro with-exception-redirect [& body]
-  `(try
-     ~@body
-     (catch Exception e#
-       )))
 
 (defn next-version [version]
   (if version

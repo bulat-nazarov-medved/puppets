@@ -8,6 +8,8 @@
                  [org.clojure/clojurescript "0.0-2202"]
                  [compojure "1.1.6"]
                  [enfocus "2.0.2"]
+                 [fogus/ring-edn "0.2.0"]
+                 [lib-noir "0.8.2"]
                  [ring/ring-core "1.2.2"]
                  [ring/ring-servlet "1.2.2"]
                  [korma "0.3.1"]
