@@ -1,0 +1,121 @@
+html, body{ 
+ margin:0; 
+ padding:0; 
+ } 
+ 
+#pagewidth{ }
+ 
+#header{
+ position:relative; 
+ width:100%;
+ display:block;
+ overflow:auto;
+} 
+ 
+#leftcol{
+ width:12%; 
+ float:left; 
+ position:relative; 
+ }
+ 
+#twocols{
+ width:88%; 
+ float:right; 
+ position:relative; 
+  }
+ 
+#rightcol{
+ width:14%; 
+ float:right; 
+ position:relative; 
+ }
+ 
+#maincol{
+ float: left; 
+ position: relative; 
+ width:86%;
+ }
+ 
+#footer{
+ height:150px; 
+ clear:both;
+ display:block;
+ overflow:auto;
+} 
+ 
+#content {
+	padding-left: 1em;
+	padding-right: 1em;
+} 
+
+.hmenu {
+	float: left;
+	width: 100%;
+	background: gray;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+} 
+
+.hmenu li {
+	display: inline;
+}
+
+.hmenu a {
+	float: left;
+	text-decoration: none;
+	padding: 0.2em 0.6em;
+	color: white;
+}
+
+.hmenu a:hover {
+	background: orange;
+}
+
+.vmenu {
+	background: gray;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+
+.vmenu a {
+	text-decoration: none;
+	padding: 0.2em 0.6em;
+	color: white;
+}
+
+.vmenu a:hover {
+	background: orange;
+}
+
+.clearfix:after {
+ content: "."; 
+ display: block; 
+height: 0; 
+ clear: both; 
+ visibility: hidden;
+ }
+ 
+.clearfix{display: inline-block;}
+
+/* Hides from IE-mac \*/
+* html .clearfix{height: 1%;}
+.clearfix{display: block;}
+/* End hide from IE-mac */  
+
+
+ 
+ 
+/* ******************************************************************** */ 
+/*                      printer styles                                  */ 
+/* ******************************************************************** */ 
+     
+ @media print{ 
+/*hide the left column when printing*/ 
+#leftcol{display:none;} 
+
+/*hide the right column when printing*/ 
+#rightcol{display:none;} 
+#twocols, #maincol{width:100%; float:none;}
+}
