@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<title>Puppets Sign-In</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="css/puppets.css" type="text/css" />
+    <script src="js/main.js"></script>
+</head>
+<body>
+    <form id="signinform" action="#">
+        <ul class="simple">
+            <li>Username: <input type="text" name="username"/></li>
+            <li>Email: <input type="text" name="email"/></li>
+            <li>Password: <input type="password" name="password"/><span class="comment"></span></li>
+            <li>Repeat password: <input type="password" name="password2"/><span class="comment"></span></li>
+            <li><img src="img/clojure-logo.svg" height=32 width=32/> <input type="radio" name="race" value="clojure"/></li>
+            <li><img src="img/groovy-logo.svg" height=32 width=32/> <input type="radio" name="race" value="groovy"/></li>
+            <li><img src="img/scala-logo.svg" height=32 width=32/> <input type="radio" name="race" value="scala"/></li>
+
+            <li><input type="submit" value="submit"/><input class="cancel" type="button" value="cancel"/></li>
+        </ul>
+    </form>
+</body>
+</html>

@@ -89,6 +89,11 @@ html, body{
 	background: orange;
 }
 
+.simple {
+    list-style: none;
+}
+
+
 .clearfix:after {
  content: "."; 
  display: block; 

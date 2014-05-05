@@ -36,9 +36,15 @@
          (catch Throwable t
            (generate-response {:success false :error t} 401)))))
 
+(defn session-js-response []
+  {:status 200
+   :headers {"Content-Type" "application/javascript"}
+   :body (str "var userlogged = " (if (session/get :user) true false) ";")})
+
 (defroutes app-routes
   (context "/api" [] api-routes)
   (GET "/" [] (resource-response "blank.html" {:root "public"}))
+  (GET "/js/session.js" [] (session-js-response))
   (route/resources "/")
   (route/not-found "Not found"))
 

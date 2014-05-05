@@ -13,8 +13,9 @@
                  [korma "0.3.1"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
 
-                 [org.clojure/clojurescript "0.0-2202"]
-                 [enfocus "2.0.2"]]
+                 [cljs-ajax "0.2.3"]
+                 [enfocus "2.0.2"]
+                 [org.clojure/clojurescript "0.0-2202"]]
   :plugins [[lein-cljsbuild "1.0.3"]
             [lein-ring "0.8.10"]]
   :cljsbuild {:builds [{:source-paths ["src"]
