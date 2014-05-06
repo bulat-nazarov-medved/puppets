@@ -1,5 +1,6 @@
 (ns puppets.server.core
   (:use
+   [puppets.server mailer signin]
    [compojure core]
    [ring.middleware.edn])
   (:require
@@ -8,19 +9,25 @@
    [noir.session :as session]
    [noir.util.middleware :as noir]
    [ring.middleware.session.cookie :as rc]
-   [ring.util.response :refer (resource-response)]))
+   [ring.util.response :refer (resource-response)])
+  (:import
+   [clojure.lang ExceptionInfo]))
 
 (defn authenticated-api-call
   [action params]
   (if (session/get :user)
     (case action
       )
-    (throw (Exception. "Not authorized."))))
+    (throw (ex-info "Authentication exception."
+                    {:type :auth
+                     :action action
+                     :params params}))))
 
 (defn api-call
   [action params]
   (case action
     "login" {}
+    "signin" (signin params)
     (authenticated-api-call action params)))
 
 (defn generate-response [data & [status]]
@@ -31,10 +38,13 @@
 (defroutes api-routes
   (GET "/:action" [action & params]
        (try
-         (generate-response (assoc (api-call action params)
-                              :success true))
+         (generate-response (assoc (api-call action params) :success true))
+         (catch ExceptionInfo ei
+           (let [edata (ex-data ei)]
+             (case (:type edata)
+               :auth (generate-response (assoc edata :success false) 401))))
          (catch Throwable t
-           (generate-response {:success false :error t} 401)))))
+           (generate-response {:success false :error t} 500)))))
 
 (defn session-js-response []
   {:status 200

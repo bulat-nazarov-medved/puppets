@@ -11,7 +11,10 @@
                  [ring/ring-core "1.2.2"]
                  [ring/ring-servlet "1.2.2"]
                  [korma "0.3.1"]
+                 [metis "0.3.3"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
+                 [com.draines/postal "1.11.1"]
+                 [crypto-password "0.1.3"]
 
                  [cljs-ajax "0.2.3"]
                  [enfocus "2.0.2"]

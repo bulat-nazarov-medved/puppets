@@ -1,4 +1,4 @@
 drop table users;
-drop type race_type;
 
+delete from keys where key = 'general_pool';
 update keys set value = 0 where key = 'version';

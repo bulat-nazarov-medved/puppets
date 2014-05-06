@@ -5,6 +5,7 @@
    [clojure.java.io :as io]
    [clojure.java.jdbc.deprecated :as sql]
    [clojure.string :as str]
+   [crypto.password.scrypt :as psw]
    [puppets.server.korma :as pk])
   (:import
    [java.net URI]))
@@ -45,6 +46,46 @@
   [key]
   (with-exception-redirect
     (:value (first (select dbkey (where {:key key}))))))
+
+(defn create-id-pool [pool-name pool-size]
+  (let [available-id (atom 0)
+        reserved-to-id (atom 0)
+        lock (new Object)]
+    (fn
+      ([action]
+         (case action
+           :reset (do (reset! available-id 0)
+                      (reset! reserved-to-id 0))))
+      ([]
+         (locking lock
+           (when (= @available-id @reserved-to-id)
+             (let [current-aid (find-key pool-name)
+                   lease-aid (+ current-aid pool-size)]
+               (update dbkey (set-fields {:value lease-aid})
+                       (where {:key pool-name}))
+               (reset! available-id current-aid)
+               (reset! reserved-to-id lease-aid)))
+           (let [return-id @available-id]
+             (reset! available-id (inc @available-id))
+             return-id))))))
+
+(def general-pool (create-id-pool "general_pool" 10))
+
+(defn user-exists?
+  [username]
+  (= 1 (count (select user (where {:login username})))))
+
+(defn user-create!
+  [username email password race activation-code]
+  (let [id (general-pool)]
+    (insert user (values {:id id :login username :email email
+                          :password (psw/encrypt password)
+                          :race race :activation_code activation-code
+                          :email_sent false}))
+    id))
+
+(defn user-mark-email-sent! [user-id]
+  (update user (set-fields {:email_sent true})))
 
 ;;;DB upgrade/downgrade
 

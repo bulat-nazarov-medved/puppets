@@ -24,10 +24,27 @@
   (ef/at "#dialog" (ef/set-attr :style "display:none"))
   (ef/at "#content" (ef/remove-attr :style)))
 
+(defn signin-complete [response]
+  (if (= :tests-error (:status response))
+    (ef/at "#signinresponse" (ef/content (str (:tests response))))
+    (do (close-dialog)
+        (ef/at "#content" (ef/content "Your activation code sent to your email.")))))
+
+(defn signin-error [response]
+  (ef/at "#signinresponse" (ef/content (str "error: " response))))
+
+(defn signin-finally [form]
+  (ef/at form "input[type='submit']" (ef/remove-attr :disabled)))
+
 (defn send-signin [form]
   (let [form-values (ef/from form (ef/read-form))]
-    
-    (.log js/console (pr-str form-values))))
+    (ef/at form "input[type='submit']" (ef/set-attr :disabled :disabled))
+    (ajax/GET "/api/signin"
+              {:handler signin-complete
+               :error-handler signin-error
+               :finally (partial signin-finally form)
+               :format :raw
+               :params form-values})))
 
 (defn show-signin [event]
   (ef/at "#dialog" (ef/content (signin-html)))
@@ -46,10 +63,5 @@
       (ef/at "#signin" (ef/remove-node)))
     (ef/at "#logout" (ef/remove-node)))
   (ef/at "#content" (ef/content (str js/userlogged))))
-
-;; (comment
-;;   (ajax/GET "/api/login"
-;;             {:handler #(ef/at "#content"
-;;                               (ef/content (str %)))}))
 
 (set! (.-onload js/window) #(em/wait-for-load (init)))
