@@ -9,7 +9,7 @@
                  :user (System/getenv "SMTP_USER")
                  :pass (aes/decrypt (System/getenv "SMTP_PASS") "puppets-key")
                  :tls :yes}
-                {:from "robot"
+                {:from (System/getenv "SMTP_SENDER")
                  :to [to]
                  :subject subject
                  :body body}))

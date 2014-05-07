@@ -23,16 +23,19 @@
   [username email password race]
   (let [activation-code (hexadecimalize (generate-secure-token 32))
         uid (user-create! username email password race activation-code)
-        mail-sent-status (mail email "Puppets [Account activation]"
-                               (str "Hi, " username "!!!\n\n"
-                                    "To activate your 'Puppets' account "
-                                    "just follow the link below: \n\n"
-                                    (System/getenv "BASE_URL") "/activate/"
-                                    activation-code))]
+        mail-sent-status (try
+                           (mail email "Puppets [Account activation]"
+                                 (str "Hi, " username "!!!\n\n"
+                                      "To activate your 'Puppets' account "
+                                      "just follow the link below: \n\n"
+                                      (System/getenv "BASE_URL") "/activate/"
+                                      activation-code))
+                           (catch Exception e
+                             {:error :EXCEPTION :exception e}))]
     (if (= :SUCCESS (:error mail-sent-status))
       (do (user-mark-email-sent! uid)
           {:status :complete})
-      {:status :email-not-sent})))
+      {:status :email-not-sent :mail-sent-status mail-sent-status})))
 
 (defn signin
   [{:keys [username email password password-confirmation race] :as params}]

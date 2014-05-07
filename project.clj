@@ -12,7 +12,7 @@
                  [ring/ring-servlet "1.2.2"]
                  [korma "0.3.1"]
                  [metis "0.3.3"]
-                 [org.postgresql/postgresql "9.3-1101-jdbc41"]
+                 [org.postgresql/postgresql "9.3-1101-jdbc4"]
                  [com.draines/postal "1.11.1"]
                  [crypto-password "0.1.3"]
 
@@ -21,6 +21,6 @@
                  [org.clojure/clojurescript "0.0-2202"]]
   :plugins [[lein-cljsbuild "1.0.3"]
             [lein-ring "0.8.10"]]
-  :cljsbuild {:builds [{:source-paths ["src"]
+  :cljsbuild {:builds [{:source-paths ["src/puppets/client/"]
                         :compiler {:output-to "resources/public/js/main.js"}}]}
   :ring {:handler puppets.server.core/app})

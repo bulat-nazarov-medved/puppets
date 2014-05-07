@@ -4,6 +4,7 @@
    [compojure core]
    [ring.middleware.edn])
   (:require
+   [puppets.server.aes :as aes]
    [compojure.handler :as handler]
    [compojure.route :as route]
    [noir.session :as session]
