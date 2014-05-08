@@ -4,6 +4,7 @@ create table users (
   password varchar (255),
   email varchar (255),
   race varchar (255),
+  active boolean,
   activation_code varchar(64),
   email_sent boolean
 );

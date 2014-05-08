@@ -23,4 +23,6 @@
             [lein-ring "0.8.10"]]
   :cljsbuild {:builds [{:source-paths ["src/puppets/client/"]
                         :compiler {:output-to "resources/public/js/main.js"}}]}
-  :ring {:handler puppets.server.core/app})
+  :ring {:port 8080
+         :init puppets.server.core/init
+         :handler puppets.server.core/app})

@@ -10,17 +10,19 @@
   (:import
    [java.net URI]))
 
-(let [db-uri (URI. (System/getenv "DATABASE_URL"))
-      userinfo (str/split (.getUserInfo db-uri) #":")
-      username (first userinfo)
-      password (second userinfo)]
-  (defdb db (pk/postgres {:host (.getHost db-uri)
-                          :port (.getPort db-uri)
-                          :db (subs (.getPath db-uri) 1)
-                          :user username
-                          :password password
-                          :props {:ssl true
-                                  :sslfactory "org.postgresql.ssl.NonValidatingFactory"}})))
+(defn define-database []
+  (let [db-uri (URI. (System/getenv "DATABASE_URL"))
+        userinfo (str/split (.getUserInfo db-uri) #":")
+        username (first userinfo)
+        password (second userinfo)]
+    (defdb db (pk/postgres
+               {:host (.getHost db-uri)
+                :port (.getPort db-uri)
+                :db (subs (.getPath db-uri) 1)
+                :user username
+                :password password
+                :props {:ssl true
+                        :sslfactory "org.postgresql.ssl.NonValidatingFactory"}}))))
 
 (def structure-version 1)
 
@@ -75,13 +77,17 @@
   [username]
   (= 1 (count (select user (where {:login username})))))
 
+(defn user-for-activation
+  [code]
+  (first (select user (where {:activation_code code}))))
+
 (defn user-create!
   [username email password race activation-code]
   (let [id (general-pool)]
     (insert user (values {:id id :login username :email email
                           :password (psw/encrypt password)
                           :race race :activation_code activation-code
-                          :email_sent false}))
+                          :active false :email_sent false}))
     id))
 
 (defn user-mark-email-sent! [user-id]

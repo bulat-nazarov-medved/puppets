@@ -1,6 +1,6 @@
 (ns puppets.server.core
   (:use
-   [puppets.server mailer signin]
+   [puppets.server database mailer signin]
    [compojure core]
    [ring.middleware.edn])
   (:require
@@ -52,9 +52,14 @@
    :headers {"Content-Type" "application/javascript"}
    :body (str "var userlogged = " (if (session/get :user) true false) ";")})
 
+(defn activate-code [code]
+  (let [user (user-for-activation code)]
+    ))
+
 (defroutes app-routes
   (context "/api" [] api-routes)
   (GET "/" [] (resource-response "blank.html" {:root "public"}))
+  (GET "/activate/:code" [code] (activate-code code))
   (GET "/js/session.js" [] (session-js-response))
   (route/resources "/")
   (route/not-found "Not found"))
@@ -65,3 +70,7 @@
                handler/site)]
           :session-options {:cookie-name "puppets"
                             :store (rc/cookie-store)}))
+
+(defn init []
+  (define-database)
+  (upgrade-to-latest))
