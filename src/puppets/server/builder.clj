@@ -1,12 +1,14 @@
 (ns puppets.server.builder
   (:use
-   [puppets.server database]))
+   [puppets.server constants model]))
 
 (defn build-world!
   []
-  (let [width 80
-        heigth 80]
-    ))
+  (clear-world!)
+  (doseq [x (range dim)
+          y (range dim)]
+    (create-cell! [x y]))
+  nil)
 
 (defn build-new-user!
   []
