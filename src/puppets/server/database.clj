@@ -24,7 +24,7 @@
                 :props {:ssl true
                         :sslfactory "org.postgresql.ssl.NonValidatingFactory"}}))))
 
-(def structure-version 1)
+(def structure-version 2)
 
 (defmacro with-exception-redirect [& body]
   `(try
@@ -112,6 +112,7 @@
 
 (defn structure-upgrade-step
   [version-from]
+  (println version-from)
   (let [upgrade-file (str "sql/"
                           (or version-from "nil") "-" (next-version version-from)
                           "/upgrade.sql")]

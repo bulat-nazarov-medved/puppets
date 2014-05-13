@@ -18,12 +18,35 @@
      (> hunger hunger-to-eat) (puppet-want-to-eat world puppet)
      :else world)))
 
+(defn eat-from-village [world puppet village-loc]
+  (let [cpu-res (-> world
+                    :cells
+                    (get village-loc)
+                    :village
+                    :storage
+                    :cpu)]
+    (if (>= cpu-res _puppet-eat-at-once_)
+      (-> world
+          (assoc-in [:puppets (:id puppet) :hunger] 0)
+          (update-in [:cells village-loc :village :storage :cpu]
+                     - _puppet-eat-at-once_))
+      world)))
+
 (defn behave-eat [world puppet]
+  (if (= :want-to-eat (:state puppet))
+    (let [village-loc (:village-loc puppet)]
+      (if village-loc
+        (eat-from-village world puppet village-loc)
+        world))
+    world))
+
+(defn became-hunger [world puppet]
   (update-in world [:puppets (:id puppet) :hunger] inc))
 
 (defn behave-puppet [world puppet]
   (-> world
       (behave-eat puppet)
+      (became-hunger puppet)
       (behave-hunger puppet)))
 
 (defn behave-puppets-map [world puppets]

@@ -9,3 +9,5 @@
 (def puppets-gen-period 7)
 
 (def resource-gen-period 10)
+
+(def _puppet-eat-at-once_ 10)
