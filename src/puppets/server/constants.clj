@@ -11,3 +11,5 @@
 (def resource-gen-period 10)
 
 (def _puppet-eat-at-once_ 10)
+
+(def _puppet-sight-range_ 5)

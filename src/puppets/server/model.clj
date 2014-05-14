@@ -1,6 +1,8 @@
-(ns puppets.server.model)
+(ns puppets.server.model
+  (:import
+   [java.lang Math]))
 
-(defrecord World [mstate users cells puppets])
+(defrecord World [mstate users cells puppets buildings])
 
 (defrecord User [id name])
 
@@ -11,7 +13,10 @@
 ;;; resources - :cpu, :bytecode, :ram
 (defrecord Resource [type cur-val max-val step-diff])
 
-(defrecord Puppet [id name loc hunger state village-loc])
+(defrecord Puppet [id name loc hunger state village-loc busyness])
+
+;;; types - :cpufreqd, :proguard, :ram.booster
+(defrecord ResourceBuilding [id type loc village-loc puppet-id])
 
 (defrecord DBkey [key value])
 
@@ -31,7 +36,14 @@
   (map->World {:mstate 0
                :users {}
                :cells {}
-               :puppets {}}))
+               :puppets {}
+               :buildings {}}))
+
+(defn distance [loc-from loc-to]
+  (->> (map - loc-from loc-to)
+       (map #(* % %))
+       (apply +)
+       Math/sqrt))
 
 (defn cell-at [world loc]
   (get (:cells world) loc))
@@ -63,7 +75,8 @@
                       :loc loc
                       :hunger 0
                       :state :none
-                      :village-loc nil})]))
+                      :village-loc nil
+                      :busyness false})]))
 
 (defn create-user [name]
   (let [id (general-pool)]
@@ -85,6 +98,16 @@
                  :bytecode (gen-resource-always
                             :bytecode 0.37)
                  :ram nil})))
+
+(defn create-resource-building [type loc village-loc]
+  (let [id (general-pool)]
+    (map->ResourceBuilding {:id id
+                            :type type
+                            :loc loc
+                            :village-loc village-loc})))
+
+(defn place-resource-building [world resource-building]
+  (assoc-in world [:buildings (:id resource-building)] resource-building))
 
 (def world (agent (create-world)))
 
@@ -109,3 +132,8 @@
   (let [new-village (create-village loc user-id)]
     (send world place-village loc new-village)
     new-village))
+
+(defn create-resource-building! [type loc village-loc]
+  (let [new-building (create-resource-building type loc village-loc)]
+    (send world place-resource-building new-building)
+    new-building))

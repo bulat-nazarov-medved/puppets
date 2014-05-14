@@ -15,6 +15,7 @@
                  [org.postgresql/postgresql "9.3-1101-jdbc4"]
                  [com.draines/postal "1.11.1"]
                  [crypto-password "0.1.3"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
 
                  [cljs-ajax "0.2.3"]
                  [enfocus "2.0.2"]
