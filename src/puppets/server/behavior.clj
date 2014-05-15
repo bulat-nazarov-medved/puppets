@@ -11,12 +11,11 @@
   (assoc-in world [:puppets (:id puppet) :state] :want-to-eat))
 
 (defn puppet-die [world puppet]
-  (-> world
-      (update-in [:puppets] dissoc (:id puppet))
-      (update-in [:buildings] #(for [building %]
-                                 (if (= (:id puppet) (:puppet-id building))
-                                   (assoc building :puppet-id nil)
-                                   building)))))
+  (let [new-world (update-in world [:puppets] dissoc (:id puppet))]
+    (if (:busyness puppet)
+      (update-in world [:buildings (:busyness puppet) :puppet-ids]
+                 disj (:id puppet))
+      world)))
 
 (defn behave-hunger [world puppet]
   (let [hunger (:hunger puppet)]
@@ -130,7 +129,7 @@
 (defn works-for-puppet [world puppet]
   (filter (fn [building]
             (and (= (:village-loc building) (:village-loc puppet))
-                 (nil? (:puppet-id building))))
+                 (< (count (:puppet-ids building)) (:capacity building))))
           (vals (:buildings world))))
 
 (defn nearest-object [loc objects]
@@ -143,8 +142,8 @@
 
 (defn puppet-begin-work [world puppet building]
   (-> world
-      (assoc-in [:buildings (:id building) :puppet-id] (:id puppet))
-      (assoc-in [:puppets (:id puppet) :busyness] true)))
+      (update-in [:buildings (:id building) :puppet-ids] conj (:id puppet))
+      (assoc-in [:puppets (:id puppet) :busyness] (:id building))))
 
 (defn loc-at? [loc1 loc2]
   (= loc1 loc2))
@@ -217,19 +216,45 @@
   (update-in world [:mstate] inc))
 
 (defn extract-resource [world building]
-  world)
+  (let [working-puppets (count (:puppet-ids building))]
+    (if (> working-puppets 0)
+      (let [extract-percentage (/ working-puppets (:capacity building))
+            resource (extracted-resource (:subtype building))
+            canonical-value (get $extract-resources-value$ resource)
+            probable-value (int (* canonical-value extract-percentage))
+            available (-> world :cells (get (:loc building)) :resources
+                          resource :cur-val)
+            actual-value (if (> probable-value available)
+                           available probable-value)]
+        (-> world
+            (update-in [:cells (:loc building) :resources resource :cur-val]
+                       - actual-value)
+            (update-in [:cells (:village-loc building) :village :storage resource]
+                       + actual-value)))
+      world)))
 
 (defn extract-resources [world]
   (reduce
    (fn [world' building]
      (extract-resource world' building))
    world
-   (:buildings world)))
+   (resource-buildings world)))
+
+(defn produce-artifact [world building]
+  world)
+
+(defn produce-artifacts [world]
+  (reduce
+   (fn [world' building]
+     (produce-artifact world' building))
+   world
+   (production-buildings world)))
 
 (defn recalc-world [world]
   (-> world
       behave-puppets
       update-resources
       extract-resources
+      produce-artifacts
       gen-puppets
       mstate-increment))

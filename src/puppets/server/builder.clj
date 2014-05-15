@@ -16,5 +16,6 @@
 (defn test-build! []
   (build-world!)
   (build-new-user! "user1")
-  (create-resource-building! :cpufreqd [0 0] [0 0])
+  (create-building! :resource :cpufreqd 1 [0 0] [0 0])
+  (create-building! :production :throws 2 [0 0] [0 0])
   nil)

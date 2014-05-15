@@ -15,8 +15,9 @@
 
 (defrecord Puppet [id name loc hunger state village-loc busyness])
 
-;;; types - :cpufreqd, :proguard, :ram.booster
-(defrecord ResourceBuilding [id type loc village-loc puppet-id])
+;;; types - :resource
+;;; subtypes - :cpufreqd, :proguard, :ram.booster
+(defrecord Building [id type subtype moffset capacity loc village-loc puppet-ids])
 
 (defrecord DBkey [key value])
 
@@ -51,7 +52,7 @@
 (defn gen-resource-always [type p]
   (let [max-val (int (* p 8000))
         cur-val (int (/ max-val 2))
-        step-diff (int (/ max-val 1000))]
+        step-diff (int (/ max-val 100))]
     (map->Resource {:type type
                     :cur-val cur-val
                     :max-val max-val
@@ -76,7 +77,7 @@
                       :hunger 0
                       :state :none
                       :village-loc nil
-                      :busyness false})]))
+                      :busyness nil})]))
 
 (defn create-user [name]
   (let [id (general-pool)]
@@ -88,7 +89,9 @@
                  :user-id user-id
                  :storage {:cpu 400
                            :bytecode 200
-                           :ram 100}}))
+                           :ram 100
+                           :null-pointer-exception 0
+                           :stack-overflow-exception 0}}))
 
 (defn place-village [world loc village]
   (-> world
@@ -99,17 +102,41 @@
                             :bytecode 0.37)
                  :ram nil})))
 
-(defn create-resource-building [type loc village-loc]
+(defn create-building [type subtype capacity loc village-loc]
   (let [id (general-pool)]
-    (map->ResourceBuilding {:id id
-                            :type type
-                            :loc loc
-                            :village-loc village-loc})))
+    (map->Building {:id id
+                    :type type
+                    :subtype subtype
+                    :capacity capacity
+                    :loc loc
+                    :village-loc village-loc
+                    :puppet-ids #{}})))
 
-(defn place-resource-building [world resource-building]
-  (assoc-in world [:buildings (:id resource-building)] resource-building))
+(defn place-building [world building]
+  (-> world
+      (assoc-in [:buildings (:id building)] building)
+      (assoc-in [:buildings (:id building) :moffset]
+                (:mstate world))))
 
 (def world (agent (create-world)))
+
+(defn resource-buildings [world]
+  (filter
+   (fn [building]
+     (= :resource (:type building)))
+   (vals (:buildings world))))
+
+(defn production-buildings [world]
+  (filter
+   (fn [building]
+     (= :production (:type building)))
+   (vals (:buildings world))))
+
+(defn extracted-resource [subtype]
+  (case subtype
+    :cpufreqd :cpu
+    :proguard :bytecode
+    :ram.booster :ram))
 
 (defn clear-world! []
   (send world (constantly (create-world))))
@@ -133,7 +160,7 @@
     (send world place-village loc new-village)
     new-village))
 
-(defn create-resource-building! [type loc village-loc]
-  (let [new-building (create-resource-building type loc village-loc)]
-    (send world place-resource-building new-building)
+(defn create-building! [type subtype capacity loc village-loc]
+  (let [new-building (create-building type subtype capacity loc village-loc)]
+    (send world place-building new-building)
     new-building))
