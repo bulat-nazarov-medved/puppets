@@ -135,8 +135,10 @@
 (defn nearest-object [loc objects]
   (reduce
    (fn [o1 o2]
-     (< (distance loc (:loc o1))
-        (distance loc (:loc o2))))
+     (if (< (distance loc (:loc o1))
+            (distance loc (:loc o2)))
+       o1
+       o2))
    (first objects)
    (rest objects)))
 
@@ -240,8 +242,58 @@
    world
    (resource-buildings world)))
 
+(defn progress-order [world building-id order-id quantity takts]
+  (-> world
+      (update-in [:buildings building-id :production-orders order-id :quantity]
+                 - quantity)
+      (assoc-in [:buildings building-id :production-orders order-id :puppet-takts]
+                 takts)))
+
+(defn complete-order [world building-id order-id]
+  (update-in world [:buildings building-id :production-orders]
+             dissoc order-id))
+
+(defn move-to-storage [world village-loc product quantity]
+  (update-in world [:cells village-loc :village :storage product]
+             + quantity))
+
 (defn produce-artifact [world building]
-  world)
+  (let [village-loc (:village-loc building)
+        busy-puppets (count (:puppet-ids building))
+        production-orders (count (:production-orders building))]
+    (if (and (> busy-puppets 0)
+             (> production-orders 0))
+      (let [{:keys [id puppet-takts product quantity]} (get-current-order building)
+            building-description (get $buildings-production$ (:subtype building))
+            {p-quantity :quantity p-puppet-takts :puppet-takts needs :needs}
+            (get building-description product)
+            village-res (-> (cell-at world village-loc) :village :storage)
+            needs-for-puppets (into {}
+                                    (for [[res val] needs]
+                                      [res (* val busy-puppets)]))
+            res-after-takt (merge-with - village-res needs-for-puppets)
+            res-enough? (if (< (apply min (vals res-after-takt)) 0) false true)
+            new-takts (+ puppet-takts busy-puppets)
+            world-with-production (if res-enough?
+                                    (-> world
+                                        (assoc-in [:cells village-loc
+                                                   :village :storage]
+                                                  res-after-takt)
+                                        (assoc-in [:buildings (:id building)
+                                                   :production-orders
+                                                   id :puppet-takts]
+                                                   new-takts))
+                                    world)]
+        (if (and res-enough?
+                 (>= new-takts p-puppet-takts))
+          (let [world-with-move-to-storage (move-to-storage world village-loc
+                                                            product p-quantity)]
+            (if (> (- quantity p-quantity) 0)
+              (progress-order world-with-move-to-storage (:id building)
+                              id p-quantity (- new-takts p-puppet-takts))
+              (complete-order world-with-move-to-storage (:id building) id)))
+          world-with-production))
+      world)))
 
 (defn produce-artifacts [world]
   (reduce

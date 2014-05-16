@@ -22,12 +22,12 @@
 (def $buildings-production$
   {:throws {:null-pointer-exception
             {:quantity 1
-             :mstates 3
+             :puppet-takts 6
              :needs {:cpu 1
-                     :bytecode 10}}
+                     :bytecode 6}}
             :stack-overflow-exception
             {:quantity 1
-             :mstates 6
+             :puppet-takts 12
              :needs {:cpu 1
-                     :bytecode 4
-                     :ram 5}}}})
+                     :bytecode 2
+                     :ram 2}}}})

@@ -17,5 +17,7 @@
   (build-world!)
   (build-new-user! "user1")
   (create-building! :resource :cpufreqd 1 [0 0] [0 0])
-  (create-building! :production :throws 2 [0 0] [0 0])
+  (let [building (create-building! :production :throws 2 [0 0] [0 0])]
+    (place-production-order! (:id building) :null-pointer-exception 10)
+    (place-production-order! (:id building) :stack-overflow-exception 5))
   nil)

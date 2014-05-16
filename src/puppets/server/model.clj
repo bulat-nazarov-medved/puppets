@@ -17,7 +17,9 @@
 
 ;;; types - :resource
 ;;; subtypes - :cpufreqd, :proguard, :ram.booster
-(defrecord Building [id type subtype moffset capacity loc village-loc puppet-ids])
+(defrecord Building [id type subtype capacity loc village-loc puppet-ids])
+
+(defrecord ProductionOrder [id puppet-takts product quantity])
 
 (defrecord DBkey [key value])
 
@@ -110,13 +112,11 @@
                     :capacity capacity
                     :loc loc
                     :village-loc village-loc
-                    :puppet-ids #{}})))
+                    :puppet-ids #{}
+                    :production-orders (sorted-map)})))
 
 (defn place-building [world building]
-  (-> world
-      (assoc-in [:buildings (:id building)] building)
-      (assoc-in [:buildings (:id building) :moffset]
-                (:mstate world))))
+  (assoc-in world [:buildings (:id building)] building))
 
 (def world (agent (create-world)))
 
@@ -132,11 +132,24 @@
      (= :production (:type building)))
    (vals (:buildings world))))
 
+(defn get-current-order [building]
+  (first (vals (:production-orders building))))
+
 (defn extracted-resource [subtype]
   (case subtype
     :cpufreqd :cpu
     :proguard :bytecode
     :ram.booster :ram))
+
+(defn create-production-order [product quantity]
+  (map->ProductionOrder {:id (general-pool)
+                         :puppet-takts 0
+                         :product product
+                         :quantity quantity}))
+
+(defn place-production-order [world building-id production-order]
+  (update-in world [:buildings building-id :production-orders]
+             assoc (:id production-order) production-order))
 
 (defn clear-world! []
   (send world (constantly (create-world))))
@@ -164,3 +177,8 @@
   (let [new-building (create-building type subtype capacity loc village-loc)]
     (send world place-building new-building)
     new-building))
+
+(defn place-production-order! [building-id product quantity]
+  (let [new-production-order (create-production-order product quantity)]
+    (send world place-production-order building-id new-production-order)
+    new-production-order))
