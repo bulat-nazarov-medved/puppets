@@ -34,6 +34,7 @@
     (if (>= cpu-res _puppet-eat-at-once_)
       (-> world
           (assoc-in [:puppets (:id puppet) :hunger] 0)
+          (assoc-in [:puppets (:id puppet) :state] :none)
           (update-in [:cells village-loc :village :storage :cpu]
                      - _puppet-eat-at-once_))
       world)))
@@ -302,11 +303,94 @@
    world
    (production-buildings world)))
 
+(defn perform-building [world building]
+  (let [village-loc (:village-loc building)
+        busy-puppet-ids (:puppet-ids building)
+        busy-puppets (count busy-puppet-ids)]
+    (if (> busy-puppets 0)
+      (let [cur-takts (or (:puppet-takts building) 0)
+            subtype (:subtype building)
+            b-desc (get $buildings-description$ subtype)
+            {:keys [type capacity needs building-takts]} b-desc
+            village-res (-> (cell-at world village-loc) :village :storage)
+            needs-for-puppets (into {}
+                                    (for [[res val] needs]
+                                      [res (* val busy-puppets)]))
+            res-after-takt (merge-with - village-res needs-for-puppets)
+            res-enough? (if (< (apply min (vals res-after-takt)) 0) false true)
+            new-takts (+ cur-takts busy-puppets)]
+        (if res-enough?
+          (if (>= new-takts building-takts)
+            (-> world
+                (assoc-in [:buildings (:id building)]
+                          (assoc (create-building type subtype capacity
+                                                  (:loc building) village-loc)
+                            :id (:id building)))
+                (update-in [:puppets] (fn [puppets]
+                                        (into {}
+                                              (for [[id puppet] puppets]
+                                                [id (assoc puppet :busyness nil)])))))
+            (assoc-in world [:buildings (:id building) :puppet-takts] new-takts))
+          world))
+      world)))
+
+(defn perform-buildings [world]
+  (reduce
+   (fn [world' building]
+     (perform-building world' building))
+   world
+   (building-buildings world)))
+
+(defn train-warrior [world building]
+  (let [cur-training (get-current-training building)]
+    (if cur-training
+      (let [non-trained-puppet-ids (non-trained-puppet-ids world building)]
+        (if (> (count non-trained-puppet-ids) 0)
+          (let [village-loc (:village-loc building)
+                {t-id :id t-takts :puppet-takts
+                 warrior :warrior t-quantity :quantity} cur-training
+                {w-takts :takts w-needs :needs} (get $army-description$ warrior)
+                new-takts (inc t-takts)]
+            (if (>= new-takts w-takts)
+              (let [village-res (-> (cell-at world village-loc) :village :storage)
+                    res-after-takt (merge-with - village-res w-needs)
+                    res-enough? (if (< (apply min (vals res-after-takt)) 0) false true)]
+                (if res-enough?
+                  (let [new-quantity (dec t-quantity)
+                        puppet-id (first non-trained-puppet-ids)]
+                    (-> (if (= 0 new-quantity)
+                          (-> world
+                              (update-in [:buildings (:id building)
+                                          :training-orders]
+                                         dissoc t-id))
+                          (-> world
+                              (assoc-in [:buildings (:id building)
+                                         :training-orders t-id :quantity] new-quantity)
+                              (assoc-in [:buildings (:id building)
+                                         :training-orders t-id :puppet-takts] 0)))
+                        (assoc-in [:puppets puppet-id :type] :military)
+                        (assoc-in [:puppets puppet-id :subtype] warrior)
+                        (assoc-in [:cells village-loc :village :storage] res-after-takt)))
+                  world))
+              (assoc-in world [:buildings (:id building)
+                               :training-orders t-id :puppet-takts] new-takts)))
+          world))
+      world)))
+
+(defn train-warriors [world]
+  (reduce
+   (fn [world' building]
+     (train-warrior world' building))
+   world
+   (military-buildings world)))
+
 (defn recalc-world [world]
   (-> world
       behave-puppets
       update-resources
       extract-resources
       produce-artifacts
+      perform-buildings
+      train-warriors
       gen-puppets
       mstate-increment))

@@ -19,6 +19,49 @@
    :bytecode 4
    :ram 1})
 
+(def $army-description$
+  {:object {:takts 3
+            :needs {:null-pointer-exception 1}}
+   :metaobject {:takts 6
+                :needs {:stack-overflow-exception 1}}})
+
+(def $buildings-description$
+  {:cpufreqd     {:type :resource
+                  :capacity 1
+                  :building-capacity 5
+                  :building-takts 200
+                  :needs {:cpu 0
+                          :bytecode 1
+                          :ram 0}}
+   :proguard    {:type :resource
+                 :capacity 1
+                 :building-capacity 5
+                 :building-takts 200
+                 :needs {:cpu 0
+                         :bytecode 1
+                         :ram 0}}
+   :ram.booster {:type :resource
+                 :capacity 1
+                 :building-capacity 5
+                 :building-takts 200
+                 :needs {:cpu 0
+                         :bytecode 1
+                         :ram 0}}
+   :throws      {:type :production
+                 :capacity 2
+                 :building-capacity 10
+                 :building-takts 400
+                 :needs {:cpu 0
+                         :bytecode 1
+                         :ram 0}}
+   :class       {:type :military
+                 :capacity 10
+                 :building-capacity 10
+                 :building-takts 1000
+                 :needs {:cpu 0
+                         :bytecode 1
+                         :ram 0}}})
+
 (def $buildings-production$
   {:throws {:null-pointer-exception
             {:quantity 1

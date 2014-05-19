@@ -13,13 +13,15 @@
 ;;; resources - :cpu, :bytecode, :ram
 (defrecord Resource [type cur-val max-val step-diff])
 
-(defrecord Puppet [id name loc hunger state village-loc busyness])
+(defrecord Puppet [id name type subtype loc hunger state village-loc busyness])
 
 ;;; types - :resource
 ;;; subtypes - :cpufreqd, :proguard, :ram.booster
 (defrecord Building [id type subtype capacity loc village-loc puppet-ids])
 
 (defrecord ProductionOrder [id puppet-takts product quantity])
+
+(defrecord TrainingOrder [id puppet-takts warrior quantity])
 
 (defrecord DBkey [key value])
 
@@ -76,6 +78,8 @@
     [id (map->Puppet {:id id
                       :name (gensym "Puppet")
                       :loc loc
+                      :type :general
+                      :subtype :general
                       :hunger 0
                       :state :none
                       :village-loc nil
@@ -113,7 +117,8 @@
                     :loc loc
                     :village-loc village-loc
                     :puppet-ids #{}
-                    :production-orders (sorted-map)})))
+                    :production-orders (sorted-map)
+                    :training-orders (sorted-map)})))
 
 (defn place-building [world building]
   (assoc-in world [:buildings (:id building)] building))
@@ -132,8 +137,35 @@
      (= :production (:type building)))
    (vals (:buildings world))))
 
+(defn building-buildings [world]
+  (filter
+   (fn [building]
+     (= :building (:type building)))
+   (vals (:buildings world))))
+
+(defn military-buildings [world]
+  (filter
+   (fn [building]
+     (= :military (:type building)))
+   (vals (:buildings world))))
+
+(defn non-trained-puppet-ids [world building]
+  (let [puppet-ids (:puppet-ids building)]
+    (into #{}
+          (keep
+           identity
+           (map
+            (fn [id]
+              (let [puppet (-> world :puppets (get id))]
+                (when (not= :military (:type puppet))
+                  (:id puppet))))
+            puppet-ids)))))
+
 (defn get-current-order [building]
   (first (vals (:production-orders building))))
+
+(defn get-current-training [building]
+  (first (vals (:training-orders building))))
 
 (defn extracted-resource [subtype]
   (case subtype
@@ -150,6 +182,16 @@
 (defn place-production-order [world building-id production-order]
   (update-in world [:buildings building-id :production-orders]
              assoc (:id production-order) production-order))
+
+(defn create-training-order [warrior quantity]
+  (map->TrainingOrder {:id (general-pool)
+                       :puppet-takts 0
+                       :warrior warrior
+                       :quantity quantity}))
+
+(defn place-training-order [world building-id training-order]
+  (update-in world [:buildings building-id :training-orders]
+             assoc (:id training-order) training-order))
 
 (defn clear-world! []
   (send world (constantly (create-world))))
@@ -182,3 +224,8 @@
   (let [new-production-order (create-production-order product quantity)]
     (send world place-production-order building-id new-production-order)
     new-production-order))
+
+(defn place-training-order! [building-id warrior quantity]
+  (let [new-training-order (create-training-order warrior quantity)]
+    (send world place-training-order building-id new-training-order)
+    new-training-order))
