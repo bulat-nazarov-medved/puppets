@@ -2,11 +2,11 @@
 
 (def dim 5)
 
-(def hunger-to-eat 3)
+(def hunger-to-eat 15)
 
-(def hunger-to-death 5)
+(def hunger-to-death 25)
 
-(def puppets-gen-period 7)
+(def puppets-gen-period 25)
 
 (def resource-gen-period 10)
 
@@ -21,9 +21,15 @@
 
 (def $army-description$
   {:object {:takts 3
-            :needs {:null-pointer-exception 1}}
+            :needs {:null-pointer-exception 1}
+            :carry 10
+            :attack [4 6]
+            :defence [6 8]}
    :metaobject {:takts 6
-                :needs {:stack-overflow-exception 1}}})
+                :needs {:stack-overflow-exception 1}
+                :carry 5
+                :attack [7 9]
+                :defence [3 5]}})
 
 (def $buildings-description$
   {:cpufreqd     {:type :resource

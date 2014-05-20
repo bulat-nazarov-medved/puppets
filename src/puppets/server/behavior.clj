@@ -4,24 +4,20 @@
   (:require
    [clojure.math.numeric-tower :as math]))
 
-(defn cells-puppet-area [world pupet]
-  )
-
-(defn puppet-want-to-eat [world puppet]
-  (assoc-in world [:puppets (:id puppet) :state] :want-to-eat))
-
 (defn puppet-die [world puppet]
-  (let [new-world (update-in world [:puppets] dissoc (:id puppet))]
-    (if (:busyness puppet)
-      (update-in world [:buildings (:busyness puppet) :puppet-ids]
-                 disj (:id puppet))
-      world)))
+  (if (= :dead (:state puppet))
+    (-> (if (:busyness puppet)
+          (update-in world [:buildings (:busyness puppet) :puppet-ids]
+                     disj (:id puppet))
+          world)
+        (update-in [:puppets] dissoc (:id puppet)))
+    world))
 
 (defn behave-hunger [world puppet]
   (let [hunger (:hunger puppet)]
     (cond
-     (> hunger hunger-to-death) (puppet-die world puppet)
-     (> hunger hunger-to-eat) (puppet-want-to-eat world puppet)
+     (> hunger hunger-to-death) (assoc-in world [:puppets (:id puppet) :state] :dead)
+     (> hunger hunger-to-eat) (assoc-in world [:puppets (:id puppet) :state] :want-to-eat)
      :else world)))
 
 (defn eat-from-village [world puppet village-loc]
@@ -163,6 +159,85 @@
         world))
     world))
 
+(defn military-puppet-go-target [world puppet]
+  (let [war-target-loc (:war-target puppet)]
+    (if (and war-target-loc
+             (= :military (:type puppet))
+             (not= war-target-loc (:loc puppet)))
+      (puppet-move-to world puppet war-target-loc)
+      world)))
+
+(defn military-puppet-fight [world att-puppet def-puppets]
+  (let [def-puppet (first (shuffle
+                             (for [[_ puppet-ids] def-puppets
+                                   puppet-id puppet-ids]
+                               (-> world :puppets (get puppet-id)))))
+        def-subtype (:subtype def-puppet)
+        def-health (:health def-puppet)
+        {[ld hd] :defence} (get $army-description$ def-subtype)
+        def-value (+ ld (math/round (rand (- hd ld))))
+        att-subtype (:subtype att-puppet)
+        att-health (:health att-puppet)
+        {[la ha] :attack} (get $army-description$ att-subtype)
+        att-value (+ la (math/round (rand (- ha la))))]
+    (if (> att-health def-value)
+      (-> (if (> def-health att-value)
+            (update-in world [:puppets (:id def-puppet) :health] - att-value)
+            (assoc-in world [:puppets (:id def-puppet) :state] :dead))
+          (update-in [:puppets (:id att-puppet) :health] - def-value))
+      (assoc-in world [:puppets (:id att-puppet) :state] :dead))))
+
+(defn military-puppet-sack-village [world puppet]
+  (let [subtype (:subtype puppet)
+        subtype-desc (get $army-description$ subtype)
+        can-carry (:carry subtype-desc)
+        village-res (into
+                     {} (shuffle
+                         (filterv
+                          (fn [[_ q]]
+                            (> q 0))
+                          (-> (cell-at world (:loc puppet))
+                              :village :storage))))
+        [rtype rquantity] (first village-res)]
+    (if rtype
+      (let [rob-count (if (> rquantity can-carry)
+                        can-carry
+                        rquantity)]
+        (-> world
+            (update-in [:cells (:loc puppet) :village :storage rtype]
+                       - rob-count)
+            (assoc-in [:puppets (:id puppet) :carry] {rtype rob-count})
+            (assoc-in [:puppets (:id puppet) :war-state] :return)
+            (assoc-in [:puppets (:id puppet) :war-target] nil)))
+      world)))
+
+(defn military-puppet-attack [world puppet]
+  (let [war-target-loc (:war-target puppet)]
+    (if (and war-target-loc
+             (= :military (:type puppet))
+             (= war-target-loc (:loc puppet)))
+      (let [enemy-puppets (village-forces world war-target-loc)
+            enemy-count (apply + (map count (vals enemy-puppets)))]
+        (if (> enemy-count 0)
+          (military-puppet-fight world puppet enemy-puppets)
+          (military-puppet-sack-village world puppet)))
+      world)))
+
+(defn military-puppet-unload [world puppet]
+  (-> world
+      (update-in [:cells (:village-loc puppet) :village :storage]
+                 (fn [resources]
+                   (merge-with + resources (:carry puppet))))
+      (assoc-in [:puppets (:id puppet) :carry] nil)
+      (assoc-in [:puppets (:id puppet) :war-state] nil)))
+
+(defn military-puppet-return [world puppet]
+  (if (= :return (:war-state puppet))
+    (if (not= (:loc puppet) (:village-loc puppet))
+      (puppet-move-to world puppet (:village-loc puppet))
+      (military-puppet-unload world puppet))
+    world))
+
 (defn behave-puppet [world puppet]
   (-> world
       (behave-eat puppet)
@@ -171,18 +246,18 @@
       (became-citizen puppet)
       (puppet-find-busyness puppet)
       (puppet-find-busyness puppet)
-      (behave-hunger puppet)))
-
-(defn behave-puppets-map [world puppets]
-  (let [[cur-id cur-puppet] (first puppets)]
-    (if cur-id
-      (behave-puppets-map
-       (behave-puppet world cur-puppet)
-       (rest puppets))
-      world)))
+      (military-puppet-go-target puppet)
+      (military-puppet-attack puppet)
+      (military-puppet-return puppet)
+      (behave-hunger puppet)
+      (puppet-die puppet)))
 
 (defn behave-puppets [world]
-  (behave-puppets-map world (vec (:puppets world))))
+  (reduce
+   (fn [world' puppet]
+     (behave-puppet world' puppet))
+   world
+   (vals (:puppets world))))
 
 (defn gen-puppets [world]
   (let [mrem (rem (:mstate world) puppets-gen-period)]
@@ -251,8 +326,7 @@
                  takts)))
 
 (defn complete-order [world building-id order-id]
-  (update-in world [:buildings building-id :production-orders]
-             dissoc order-id))
+  (assoc-in world [:buildings building-id :production-orders order-id] nil))
 
 (defn move-to-storage [world village-loc product quantity]
   (update-in world [:cells village-loc :village :storage product]
@@ -354,7 +428,7 @@
             (if (>= new-takts w-takts)
               (let [village-res (-> (cell-at world village-loc) :village :storage)
                     res-after-takt (merge-with - village-res w-needs)
-                    res-enough? (if (< (apply min (vals res-after-takt)) 0) false true)]
+                    res-enough? (>= (apply min (vals res-after-takt)) 0)]
                 (if res-enough?
                   (let [new-quantity (dec t-quantity)
                         puppet-id (first non-trained-puppet-ids)]
@@ -384,6 +458,53 @@
    world
    (military-buildings world)))
 
+(defn send-puppet-to-war [world target puppet-id]
+  (-> world
+      (assoc-in [:puppets puppet-id :war-target] target)
+      (assoc-in [:puppets puppet-id :war-state] :attack)))
+
+(defn send-forces-from-village [world target forces]
+  (reduce
+   (fn [world' puppet-id]
+     (send-puppet-to-war world' target puppet-id))
+   world
+   (vec
+    (for [[_ puppet-ids] forces
+          puppet-id puppet-ids]
+      puppet-id))))
+
+(defn go-war-from-village [world cell]
+  (let [current-war-order (first (-> cell :village :war-orders vals))]
+    (if current-war-order
+      (let [need-forces (:forces current-war-order)
+            current-forces (village-forces world (:loc cell))
+            current-forces-count (into
+                                  {}
+                                  (map
+                                   (fn [[subtype puppet-ids]]
+                                     [subtype (count puppet-ids)])
+                                   current-forces))
+            forces-after-give-order (merge-with - current-forces-count
+                                                (:forces current-war-order))
+            forces-enough? (>= (apply min (vals forces-after-give-order)) 0)]
+        (if forces-enough?
+          (-> (send-forces-from-village world (:target-loc current-war-order)
+                                        (merge-with
+                                         (fn [ids count]
+                                           (into #{} (take count ids)))
+                                         current-forces need-forces))
+              (update-in [:cells (:loc cell) :village :war-orders]
+                         dissoc (:id current-war-order)))
+          world))
+      world)))
+
+(defn go-war [world]
+  (reduce
+   (fn [world' cell]
+     (go-war-from-village world' cell))
+   world
+   (village-cells world)))
+
 (defn recalc-world [world]
   (-> world
       behave-puppets
@@ -392,5 +513,6 @@
       produce-artifacts
       perform-buildings
       train-warriors
+      go-war
       gen-puppets
       mstate-increment))

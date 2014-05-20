@@ -1,4 +1,6 @@
 (ns puppets.server.model
+  (:use
+   [puppets.server constants])
   (:import
    [java.lang Math]))
 
@@ -8,12 +10,14 @@
 
 (defrecord Cell [loc resources village])
 
-(defrecord Village [name user-id storage])
+(defrecord Village [name user-id storage war-orders])
 
 ;;; resources - :cpu, :bytecode, :ram
 (defrecord Resource [type cur-val max-val step-diff])
 
-(defrecord Puppet [id name type subtype loc hunger state village-loc busyness])
+;;; war-state - nil, :attack, :return
+(defrecord Puppet [id name type subtype loc hunger state village-loc
+                   busyness war-target war-state carry health])
 
 ;;; types - :resource
 ;;; subtypes - :cpufreqd, :proguard, :ram.booster
@@ -22,6 +26,8 @@
 (defrecord ProductionOrder [id puppet-takts product quantity])
 
 (defrecord TrainingOrder [id puppet-takts warrior quantity])
+
+(defrecord WarOrder [id target-loc forces])
 
 (defrecord DBkey [key value])
 
@@ -83,7 +89,8 @@
                       :hunger 0
                       :state :none
                       :village-loc nil
-                      :busyness nil})]))
+                      :busyness nil
+                      :health 100})]))
 
 (defn create-user [name]
   (let [id (general-pool)]
@@ -93,11 +100,12 @@
 (defn create-village [loc user-id]
   (map->Village {:name (gensym "Village")
                  :user-id user-id
-                 :storage {:cpu 400
+                 :storage {:cpu 400000
                            :bytecode 200
                            :ram 100
-                           :null-pointer-exception 0
-                           :stack-overflow-exception 0}}))
+                           :null-pointer-exception 100
+                           :stack-overflow-exception 0}
+                 :war-orders (sorted-map)}))
 
 (defn place-village [world loc village]
   (-> world
@@ -149,6 +157,31 @@
      (= :military (:type building)))
    (vals (:buildings world))))
 
+(defn village-cells [world]
+  (filter
+   (fn [cell]
+     (if (:village cell)
+       true
+       false))
+   (vals (:cells world))))
+
+(defn village-forces [world village-loc]
+  (into
+   {}
+   (for [force-subtype (keys $army-description$)]
+     [force-subtype (into
+                     #{}
+                     (map
+                      (fn [puppet]
+                        (:id puppet))
+                      (filter
+                          (fn [puppet]
+                            (and (= village-loc (:loc puppet))
+                                 (= village-loc (:village-loc puppet))
+                                 (= :military (:type puppet))
+                                 (= force-subtype (:subtype puppet))))
+                          (vals (:puppets world)))))])))
+
 (defn non-trained-puppet-ids [world building]
   (let [puppet-ids (:puppet-ids building)]
     (into #{}
@@ -193,6 +226,15 @@
   (update-in world [:buildings building-id :training-orders]
              assoc (:id training-order) training-order))
 
+(defn create-war-order [target-loc forces]
+  (map->WarOrder {:id (general-pool)
+                  :target-loc target-loc
+                  :forces forces}))
+
+(defn place-war-order [world village-loc war-order]
+  (update-in world [:cells village-loc :village :war-orders]
+             assoc (:id war-order) war-order))
+
 (defn clear-world! []
   (send world (constantly (create-world))))
 
@@ -229,3 +271,8 @@
   (let [new-training-order (create-training-order warrior quantity)]
     (send world place-training-order building-id new-training-order)
     new-training-order))
+
+(defn place-war-order! [village-loc target-loc forces]
+  (let [new-war-order (create-war-order target-loc forces)]
+    (send world place-war-order village-loc new-war-order)
+    new-war-order))
