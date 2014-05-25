@@ -1,12 +1,14 @@
 (ns puppets.server.model
   (:use
    [puppets.server constants])
+  (:require
+   [crypto.password.scrypt :as psw])
   (:import
    [java.lang Math]))
 
 (defrecord World [mstate users cells puppets buildings])
 
-(defrecord User [id name])
+(defrecord User [id name password active])
 
 (defrecord Cell [loc resources village])
 
@@ -92,10 +94,11 @@
                       :busyness nil
                       :health 100})]))
 
-(defn create-user [name]
-  (let [id (general-pool)]
-    [id (map->User {:id id
-                    :name name})]))
+(defn create-user [id name password active]
+  (map->User {:id id
+              :name name
+              :password password
+              :active active}))
 
 (defn create-village [loc user-id]
   (map->Village {:name (gensym "Village")
@@ -247,10 +250,13 @@
                              :resources cell-resources})]
     (send world assoc-in [:cells loc] new-cell)))
 
-(defn create-user! [name]
-  (let [new-user (create-user name)]
-    (send world update-in [:users] merge new-user)
-    (second new-user)))
+(defn create-user! [id name password active]
+  (let [new-user (create-user id name password active)]
+    (send world update-in [:users] assoc id new-user)
+    new-user))
+
+(defn activate-user! [id]
+  (send world assoc-in [:users id :active] true))
 
 (defn create-village! [loc user-id]
   (let [new-village (create-village loc user-id)]
@@ -276,3 +282,13 @@
   (let [new-war-order (create-war-order target-loc forces)]
     (send world place-war-order village-loc new-war-order)
     new-war-order))
+
+(defn search-user! [name password]
+  (let [found-users (filterv
+                     (fn [user]
+                       (and (= name (:name user))
+                            (psw/check password (:password user))))
+                     (vals (:users @world)))]
+    (if (= 1 (count found-users))
+      (first found-users)
+      nil)))

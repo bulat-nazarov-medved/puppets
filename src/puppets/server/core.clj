@@ -1,10 +1,17 @@
 (ns puppets.server.core
   (:use
-   [puppets.server database mailer signin]
+   [puppets.server
+    builder
+    database
+    loginout
+    mailer
+    signin
+    world-info]
    [compojure core]
    [ring.middleware.edn])
   (:require
    [puppets.server.aes :as aes]
+   [puppets.server.model :as m]
    [compojure.handler :as handler]
    [compojure.route :as route]
    [noir.session :as session]
@@ -18,6 +25,8 @@
   [action params]
   (if (session/get :user)
     (case action
+      "logout" (logout)
+      "world" (print-world) ;;; for testing purposes
       )
     (throw (ex-info "Authentication exception."
                     {:type :auth
@@ -27,7 +36,7 @@
 (defn api-call
   [action params]
   (case action
-    "login" {}
+    "login" (login params)
     "signin" (signin params)
     (authenticated-api-call action params)))
 
@@ -54,7 +63,11 @@
 
 (defn activate-code [code]
   (let [user (user-for-activation code)]
-    ))
+    (if user
+      (do (activate-user! user)
+          (m/activate-user! (:id user))
+          (generate-response "You successfully activated. Please, login."))
+      (generate-response "Activation error."))))
 
 (defroutes app-routes
   (context "/api" [] api-routes)
@@ -71,6 +84,13 @@
           :session-options {:cookie-name "puppets"
                             :store (rc/cookie-store)}))
 
+(defn world-init []
+  (build-world!)
+  (doseq [user (users)]
+    (m/create-user! (:id user) (:login user)
+                    (:password user) (:active user))))
+
 (defn init []
   (define-database)
-  (upgrade-to-latest))
+  (upgrade-to-latest)
+  (world-init))

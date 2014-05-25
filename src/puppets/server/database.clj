@@ -77,6 +77,12 @@
   [username]
   (= 1 (count (select user (where {:login username})))))
 
+(defn users []
+  (select user))
+
+(defn user-by-name [name]
+  (first (select user (where {:login name}))))
+
 (defn user-for-activation
   [code]
   (first (select user (where {:activation_code code}))))
@@ -87,11 +93,13 @@
     (insert user (values {:id id :login username :email email
                           :password (psw/encrypt password)
                           :race race :activation_code activation-code
-                          :active false :email_sent false}))
-    id))
+                          :active false :email_sent false}))))
+
+(defn activate-user! [user-rec]
+  (update user (set-fields {:active true}) (where {:id (:id user-rec)})))
 
 (defn user-mark-email-sent! [user-id]
-  (update user (set-fields {:email_sent true})))
+  (update user (set-fields {:email_sent true}) (where {:id user-id})))
 
 ;;;DB upgrade/downgrade
 

@@ -2,7 +2,8 @@
   (:use
    [puppets.server database mailer utils])
   (:require
-   [metis.core :as mc]))
+   [metis.core :as mc]
+   [puppets.server.model :as m]))
 
 (defn freelogin [map key _]
   (when (user-exists? (key map))
@@ -32,6 +33,7 @@
                                       activation-code))
                            (catch Exception e
                              {:error :EXCEPTION :exception e}))]
+    (m/create-user! (:id uid) username (:password uid) false)
     (if (= :SUCCESS (:error mail-sent-status))
       (do (user-mark-email-sent! uid)
           {:status :complete})
