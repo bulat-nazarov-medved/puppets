@@ -12,6 +12,7 @@
     {:status :error :description "Please logout first"}
     (let [user (m/search-user! username password)]
       (if user
-        (do (session/put! :user (:id user))
+        (do (m/user-check-village! (:id user))
+            (session/put! :user (:id user))
             {:status :success})
         {:status :error :description "Username/password not found"}))))

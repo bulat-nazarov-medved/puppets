@@ -21,7 +21,8 @@
                  [enfocus "2.0.2"]
                  [org.clojure/clojurescript "0.0-2202"]]
   :plugins [[lein-cljsbuild "1.0.3"]
-            [lein-ring "0.8.10"]]
+            [lein-ring "0.8.10"]
+            [cider/cider-nrepl "0.7.0-SNAPSHOT"]]
   :cljsbuild {:builds [{:source-paths ["src/puppets/client/"]
                         :compiler {:output-to "resources/public/js/main.js"}}]}
   :ring {:port 8080

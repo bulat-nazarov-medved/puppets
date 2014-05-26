@@ -168,6 +168,21 @@
        false))
    (vals (:cells world))))
 
+(defn village-puppets [world village-loc]
+  (filter
+   (fn [puppet]
+     (= village-loc (:village-loc puppet)))
+   (vals (:puppets world))))
+
+(defn village-buildings [world village-loc]
+  (filterv
+   (fn [building]
+     (= village-loc (:loc building)))
+   (vals (:buildings world))))
+
+(defn village-war-orders [world village-loc]
+  (vals (-> world :cells (get village-loc) :village :war-orders)))
+
 (defn village-forces [world village-loc]
   (into
    {}
@@ -238,6 +253,36 @@
   (update-in world [:cells village-loc :village :war-orders]
              assoc (:id war-order) war-order))
 
+(defn user-village-cells [world user-id]
+  (filter
+   (fn [cell]
+     (and (-> cell :village)
+          (= user-id (-> cell :village :user-id))))
+   (vals (:cells world))))
+
+(defn user-check-village [world user-id]
+  (let [village-cells (user-village-cells world user-id)]
+    (if (= 0 (count village-cells))
+      (let [free-cell (first
+                       (shuffle
+                        (filter
+                         (fn [cell]
+                           (not (-> cell :village)))
+                         (vals (:cells world)))))
+            new-village (create-village (:loc free-cell) user-id)
+            new-building (create-building :building :cpufreqd 10
+                                          (:loc free-cell) (:loc free-cell))
+            new-building2 (create-building :production :throws 2
+                                          (:loc free-cell) (:loc free-cell))
+            new-building3 (create-building :military :class 10
+                                          (:loc free-cell) (:loc free-cell))]
+        (-> world
+            (place-village (:loc free-cell) new-village)
+            (place-building new-building)
+            (place-building new-building2)
+            (place-building new-building3)))
+      world)))
+
 (defn clear-world! []
   (send world (constantly (create-world))))
 
@@ -292,3 +337,6 @@
     (if (= 1 (count found-users))
       (first found-users)
       nil)))
+
+(defn user-check-village! [user-id]
+  (send world user-check-village user-id))

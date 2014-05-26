@@ -1,6 +1,7 @@
 (ns puppets.server.core
   (:use
    [puppets.server
+    behavior
     builder
     database
     loginout
@@ -27,7 +28,10 @@
     (case action
       "logout" (logout)
       "world" (print-world) ;;; for testing purposes
-      )
+      "step" (do (recalc-world!) {}) ;;; for testing purposes
+      "village-info" (if (:loc params)
+                       (village-info (read-string (:loc params)))
+                       (village-info nil)))
     (throw (ex-info "Authentication exception."
                     {:type :auth
                      :action action

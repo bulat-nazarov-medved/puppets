@@ -2,21 +2,14 @@
   (:require
    [ajax.core :as ajax]
    [enfocus.core :as ef]
-   [enfocus.events :as ev])
+   [enfocus.events :as ev]
+   [puppets.client.village :as v])
   (:require-macros
    [enfocus.macros :as em]))
 
 (em/deftemplate signin-html "/prototype/signin.html" [])
 
 (em/deftemplate login-html "/prototype/login.html" [])
-
-(em/deftemplate main-html "/prototype/main.html" []
-  "#content > *" (ef/remove-node)
-  "#villageslist > *" (ef/remove-node)
-  "#eventslist > *" (ef/remove-node)
-  "#login" (ev/listen :click show-login)
-  "#signin" (ev/listen :click show-signin)
-  )
 
 (defn show-dialog []
   (ef/at "#content" (ef/set-attr :style "display:none"))
@@ -57,11 +50,22 @@
   (ef/at ".cancel" (ev/listen :click #(close-dialog)))
   (show-dialog))
 
+(defn village-info-complete [response]
+  (v/show-village response))
+
+(defn logged-in []
+  (ef/at "#logout" (ef/remove-attr :style))
+  (ef/at "#login" (ef/set-attr :style "display:none"))
+  (ef/at "#signin" (ef/set-attr :style "display:none"))
+  (ajax/GET "/api/village-info"
+            {:handler village-info-complete}))
+
 (defn login-complete [response]
   (.log js/console "lc")
   (.log js/console (str response))
   (if (= :success (:status response))
-    (do)
+    (do (logged-in)
+        (close-dialog))
     (ef/at "#loginresponse" (ef/content (:description response)))))
 
 (defn login-error [response]
@@ -85,14 +89,36 @@
   (ef/at ".cancel" (ev/listen :click #(close-dialog)))
   (show-dialog))
 
+(defn logged-out []
+  (ef/at "#logout" (ef/set-attr :style "display:none"))
+  (ef/at "#login" (ef/remove-attr :style))
+  (ef/at "#signin" (ef/remove-attr :style))
+  (ef/at "#content" (ef/content ""))
+  (ef/at "#villageslist" (ef/content ""))
+  (ef/at "#eventslist" (ef/content "")))
+
+(defn logout-complete [response]
+  (logged-out))
+
+(defn logout []
+  (ajax/GET "/api/logout"
+            {:handler logout-complete
+             :format :raw}))
+
+(em/deftemplate main-html "/prototype/main.html" []
+  "#content > *" (ef/remove-node)
+  "#villageslist > *" (ef/remove-node)
+  "#eventslist > *" (ef/remove-node)
+  "#login" (ev/listen :click show-login)
+  "#logout" (ev/listen :click logout)
+  "#signin" (ev/listen :click show-signin)
+  "#worldstep" (ev/listen :click #(ajax/GET "/api/step")) ;; for testing purposes
+  )
+
 (defn init []
-  (.log js/console (ajax/GET "/api/login"))
   (ef/at "body" (ef/content (main-html)))
   (if js/userlogged
-    (do
-      (ef/at "#login" (ef/remove-node))
-      (ef/at "#signin" (ef/remove-node)))
-    (ef/at "#logout" (ef/remove-node)))
-  (ef/at "#content" (ef/content (str js/userlogged))))
+    (logged-in)
+    (logged-out)))
 
 (set! (.-onload js/window) #(em/wait-for-load (init)))

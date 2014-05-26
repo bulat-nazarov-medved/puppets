@@ -9,14 +9,14 @@
     (create-cell! [x y]))
   nil)
 
-(defn build-new-user! [name loc]
-  (let [user (create-user! name)]
+(defn build-new-user! [id name loc]
+  (let [user (create-user! id name "" true)]
     (create-village! loc (:id user))))
 
 (defn test-build! []
   (build-world!)
-  (build-new-user! "user1" [0 0])
-  (build-new-user! "user2" [4 4])
+  (build-new-user! 0 "user1" [0 0])
+  (build-new-user! 1 "user2" [4 4])
   (create-building! :resource :cpufreqd 1 [0 0] [0 0])
   (create-building! :building :cpufreqd 10 [0 0] [0 0])
   (let [building (create-building! :production :throws 2 [0 0] [0 0])]

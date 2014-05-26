@@ -147,17 +147,18 @@
 (defn loc-at? [loc1 loc2]
   (= loc1 loc2))
 
-(defn puppet-find-busyness [world puppet]
-  (if (and (:village-loc puppet)
-           (not (:busyness puppet)))
-    (let [available-works (works-for-puppet world puppet)
-          nearest-work (nearest-object (:loc puppet) available-works)]
-      (if nearest-work
-        (if (loc-at? (:loc puppet) (:loc nearest-work))
-          (puppet-begin-work world puppet nearest-work)
-          (puppet-move-to world puppet (:loc nearest-work)))
-        world))
-    world))
+(defn puppet-find-busyness [world puppet']
+  (let [puppet (-> world :puppets (get (:id puppet')))]
+    (if (and (:village-loc puppet)
+             (not (:busyness puppet)))
+      (let [available-works (works-for-puppet world puppet)
+            nearest-work (nearest-object (:loc puppet) available-works)]
+        (if nearest-work
+          (if (loc-at? (:loc puppet) (:loc nearest-work))
+            (puppet-begin-work world puppet nearest-work)
+            (puppet-move-to world puppet (:loc nearest-work)))
+          world))
+      world)))
 
 (defn military-puppet-go-target [world puppet]
   (let [war-target-loc (:war-target puppet)]
@@ -403,7 +404,10 @@
                 (update-in [:puppets] (fn [puppets]
                                         (into {}
                                               (for [[id puppet] puppets]
-                                                [id (assoc puppet :busyness nil)])))))
+                                                [id (if (= (:id building)
+                                                           (:busyness puppet))
+                                                      (assoc puppet :busyness nil)
+                                                      puppet)])))))
             (assoc-in world [:buildings (:id building) :puppet-takts] new-takts))
           world))
       world)))
@@ -516,3 +520,6 @@
       go-war
       gen-puppets
       mstate-increment))
+
+(defn recalc-world! []
+  (send world recalc-world))
