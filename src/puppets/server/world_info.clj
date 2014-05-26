@@ -29,6 +29,7 @@
                  (fn [building]
                    (merge
                     {:id (:id building)
+                     :loc (:loc building)
                      :type (:type building)
                      :subtype (:subtype building)
                      :puppet-ids (:puppet-ids building)}

@@ -61,8 +61,6 @@
             {:handler village-info-complete}))
 
 (defn login-complete [response]
-  (.log js/console "lc")
-  (.log js/console (str response))
   (if (= :success (:status response))
     (do (logged-in)
         (close-dialog))

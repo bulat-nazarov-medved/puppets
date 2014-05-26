@@ -6,8 +6,12 @@
   (:require-macros
    [enfocus.macros :as em]))
 
-(em/deftemplate building-view "/prototype/building.html" [building-id]
-  )
+(em/deftemplate building-internals-view "/prototype/building.html"
+  [building]
+  "#buildingtype" (ef/content (str (:type building)))
+  "#buildingsubtype" (ef/content (str (:subtype building)))
+  "#puppetids" (ef/content (str (:puppet-ids building)))
+  "#reloadvillage" (ev/listen :click #(go-to-village (:loc building))))
 
 (em/deftemplate village-view "/prototype/village.html" []
   )
@@ -16,7 +20,7 @@
   [building]
   "li" (ef/remove-attr :style)
   "li a" (ef/content (str building))
-  "li a" (ev/listen :click #(go-to-building (:id building))))
+  "li a" (ev/listen :click #(go-to-building building)))
 
 (em/defsnippet resource-view "/prototype/village.html" [".resourceview"]
   [resource]
@@ -48,13 +52,35 @@
   "a[href]" (ef/content name)
   "a[href]" (ev/listen :click #(go-to-village loc)))
 
-(defn render-building-info [building-info]
-  (ef/at "#content" (ef/content (building-view (:id building-info)))))
+(em/defsnippet training-order-view "/prototype/building.html" [".trainingorderview"]
+  [training-order]
+  "li" (ef/remove-attr :style)
+  "li" (ef/content (str training-order)))
 
-(defn go-to-building [building-id]
-  (ajax/GET "/api/building-info"
-            {:handler render-building-info
-             :params {:id building-id}}))
+(em/defsnippet production-order-view "/prototype/building.html" [".productionorderview"]
+  [production-order]
+  "li" (ef/remove-attr :style)
+  "li" (ef/content (str production-order)))
+
+(defn render-building-info [building]
+  (ef/at "#content" (ef/content (building-internals-view building)))
+  (when (= :military (:type building))
+    (ef/at "#trainingorders" (ef/remove-attr :style))
+    (ef/at "#trainingorders ul" (ef/content
+                                 (map
+                                  (fn [training-order]
+                                    (training-order-view training-order))
+                                  (:training-orders building)))))
+  (when (= :production (:type building))
+    (ef/at "#productionorders" (ef/remove-attr :style))
+    (ef/at "#productionorders ul" (ef/content
+                                   (map
+                                    (fn [production-order]
+                                      (production-order-view production-order))
+                                    (:production-orders building))))))
+
+(defn go-to-building [building]
+  (render-building-info building))
 
 (defn render-village-info [village-info]
   (ef/at "#villageslist" (ef/content
@@ -99,7 +125,7 @@
 (defn go-to-village [loc]
   (ajax/GET "/api/village-info"
             {:handler render-village-info
-             :params {:loc loc}}))
+             :params {:loc (str loc)}}))
 
 (defn show-village [village-info]
   (render-village-info village-info))
