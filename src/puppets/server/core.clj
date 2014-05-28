@@ -19,6 +19,7 @@
    [compojure.route :as route]
    [noir.session :as session]
    [noir.util.middleware :as noir]
+   [overtone.at-at :as at]
    [ring.middleware.session.cookie :as rc]
    [ring.util.response :refer (resource-response)])
   (:import
@@ -163,7 +164,10 @@
     (m/create-user! (:id user) (:login user)
                     (:password user) (:active user))))
 
+(def tp (at/mk-pool))
+
 (defn init []
   (define-database)
   (upgrade-to-latest)
-  (world-init))
+  (world-init)
+  (at/every 1000 #(send m/world recalc-world) tp))
