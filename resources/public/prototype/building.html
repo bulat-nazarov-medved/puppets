@@ -12,18 +12,36 @@
     <li id="buildingsubtype">adfg</li>
     <li id="puppetids">adfg</li>
 </ul>
+<div id="addorderplace"></div>
+<p id="errorresponse"></p>
 <div id="trainingorders" style="display:none">
-  <h3>Training Orders</h3>
+  <h3>Training Orders<button id="addtrainingorder">Add training order</button></h3>
   <ul>
-    <div><li class="trainingorderview" style="display:none"></li></div>
+    <li class="trainingorderview" style="display:none"></li>
   </ul>
 </div>
 <div id="productionorders" style="display:none">
-  <h3>Production Orders</h3>
+  <h3>Production Orders<button id="addproductionorder">Add production order</button></h3>
   <ul>
-    <div><li class="productionorderview" style="display:none"></li></div>
+    <li class="productionorderview" style="display:none"></li>
   </ul>
 </div>
 <button id="reloadvillage">back</button>
+<div id="addorderviews">
+    <form id="addtrainingorderform" action="#">
+        <ul class="simple">
+            <li>Warrior: <select name="warrior"><option value=":clojure">Clojure</option></select></li>
+            <li>Quantity: <input type="text" name="quantity"/></li>
+            <li><input type="submit" value="submit"/><input class="cancel" type="button" value="cancel"/></li>
+        </ul>
+    </form>
+    <form id="addproductionorderform" action="#">
+        <ul class="simple">
+            <li>Product: <select name="product"><option value=":clojure">Clojure</option></select></li>
+            <li>Quantity: <input type="text" name="quantity"/></li>
+            <li><input type="submit" value="submit"/><input class="cancel" type="button" value="cancel"/></li>
+        </ul>
+    </form>
+</div>
 </body>
 </html>

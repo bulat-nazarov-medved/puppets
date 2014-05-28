@@ -303,13 +303,16 @@
             probable-value (int (* canonical-value extract-percentage))
             available (-> world :cells (get (:loc building)) :resources
                           resource :cur-val)
-            actual-value (if (> probable-value available)
-                           available probable-value)]
-        (-> world
-            (update-in [:cells (:loc building) :resources resource :cur-val]
-                       - actual-value)
-            (update-in [:cells (:village-loc building) :village :storage resource]
-                       + actual-value)))
+            actual-value (when available
+                           (if (> probable-value available)
+                             available probable-value))]
+        (if available
+          (-> world
+              (update-in [:cells (:loc building) :resources resource :cur-val]
+                         - actual-value)
+              (update-in [:cells (:village-loc building) :village :storage resource]
+                         + actual-value))
+          world))
       world)))
 
 (defn extract-resources [world]
@@ -327,7 +330,7 @@
                  takts)))
 
 (defn complete-order [world building-id order-id]
-  (assoc-in world [:buildings building-id :production-orders order-id] nil))
+  (update-in world [:buildings building-id :production-orders] dissoc order-id))
 
 (defn move-to-storage [world village-loc product quantity]
   (update-in world [:cells village-loc :village :storage product]

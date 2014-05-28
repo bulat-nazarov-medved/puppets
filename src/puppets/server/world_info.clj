@@ -6,9 +6,17 @@
 (defn print-world []
   {:world @m/world})
 
+(defn print-world-agent []
+  (let [error (agent-error m/world)
+        s (java.io.StringWriter.)
+        p (java.io.PrintWriter. s)]
+    (.printStackTrace error p)
+    {:world s}))
+
 (defn _village-info [world village-cell]
   (let [village (:village village-cell)]
-    {:puppets (mapv
+    {:loc (:loc village-cell)
+     :puppets (mapv
                (fn [puppet]
                  {:id (:id puppet)
                   :loc (:loc puppet)

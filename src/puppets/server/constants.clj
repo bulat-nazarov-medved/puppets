@@ -33,6 +33,7 @@
 
 (def $buildings-description$
   {:cpufreqd     {:type :resource
+                  :description "cpufreqd"
                   :capacity 1
                   :building-capacity 5
                   :building-takts 200
@@ -40,6 +41,7 @@
                           :bytecode 1
                           :ram 0}}
    :proguard    {:type :resource
+                 :description "proguard"
                  :capacity 1
                  :building-capacity 5
                  :building-takts 200
@@ -47,6 +49,7 @@
                          :bytecode 1
                          :ram 0}}
    :ram.booster {:type :resource
+                 :description "RAM booster"
                  :capacity 1
                  :building-capacity 5
                  :building-takts 200
@@ -54,6 +57,7 @@
                          :bytecode 1
                          :ram 0}}
    :throws      {:type :production
+                 :description "Throws"
                  :capacity 2
                  :building-capacity 10
                  :building-takts 400
@@ -61,6 +65,7 @@
                          :bytecode 1
                          :ram 0}}
    :class       {:type :military
+                 :description "Class"
                  :capacity 10
                  :building-capacity 10
                  :building-takts 1000
