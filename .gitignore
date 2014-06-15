@@ -12,4 +12,5 @@ pom.xml.asc
 .nrepl-port
 /resources/public/static/js/main.js
 /resources/public/static/bower_components
+/resources/public/static/node_modules
 .idea
