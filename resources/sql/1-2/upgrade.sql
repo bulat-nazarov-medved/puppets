@@ -1,9 +1,11 @@
-create table cell (
-    id integer,
-    x integer,
-    y integer,
-    d_food integer
-);
+CREATE TABLE cell
+(
+  id integer NOT NULL,
+  x integer,
+  y integer,
+  d_food integer,
+  CONSTRAINT cell_pkey PRIMARY KEY (id )
+)
 
 create table resourceholder (
     id integer,
