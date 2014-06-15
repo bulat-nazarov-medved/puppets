@@ -10,5 +10,6 @@ pom.xml.asc
 .lein-plugins/
 .lein-failures
 .nrepl-port
-/resources/public/js/main.js
+/resources/public/static/js/main.js
+/resources/public/static/bower_components
 .idea
