@@ -60,16 +60,24 @@ module.exports = function (grunt) {
         qunit: {
             files: ['test/**/*.html']
         },
-//        less: {
-//            development: {
-//                options: {
-//                  paths: ["assets/css"]
-//                },
-//                files: {
-//                  "path/to/result.css": "path/to/source.less"
-//                }
-//            },
-//        },
+        less: {
+           compile: {
+                options: {
+                    strictMath: true,
+                },
+                // Dynamic expansion:
+                // http://gruntjs.com/configuring-tasks#building-the-files-object-dynamically
+                files: [
+                    {
+                        expand: true,
+                        cwd: "<%= config.assets %>/less",
+                        src: "**/*.less",
+                        dest: "<%= config.assets %>/css",
+                        ext: '.css'
+                    }
+                ]
+           },
+        },
         watch: {
             gruntfile: {
                 files: '<%= jshint.gruntfile.src %>',
@@ -78,6 +86,10 @@ module.exports = function (grunt) {
             lib_test: {
                 files: '<%= jshint.lib_test.src %>',
                 tasks: ['jshint:lib_test', 'qunit']
+            },
+            less: {
+                files: '<%= config.assets %>/less/**/*',
+                tasks: ['less:compile']
             }
         }
     });
